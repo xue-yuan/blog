@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Dev/Null</title>
+    <link>http://localhost:1313/</link>
+    <description>Recent content on Dev/Null</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Thu, 07 Nov 2019 19:06:06 +0800</lastBuildDate>
+    
+	<atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Test</title>
+      <link>http://localhost:1313/post/test/</link>
+      <pubDate>Thu, 07 Nov 2019 19:06:06 +0800</pubDate>
+      
+      <guid>http://localhost:1313/post/test/</guid>
+      <description>&lt;p&gt;中文測試&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>Test2</title>
+      <link>http://localhost:1313/post/test2/</link>
+      <pubDate>Thu, 08 Nov 2018 14:22:46 +0800</pubDate>
+      
+      <guid>http://localhost:1313/post/test2/</guid>
+      <description>&lt;p&gt;aaaaaa&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>http://localhost:1313/about/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>http://localhost:1313/about/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>http://localhost:1313/project/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>http://localhost:1313/project/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
+</rss>
