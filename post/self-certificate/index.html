@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>利用openSSL自簽憑證 | Dev Note</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="denon" /><meta name="description" content="最近有一項作業是實作利用 TLS 通訊的網路程式，需要自行為 Server 跟 Client 產生金鑰跟憑證來做驗證。一直以來都只有用方便又快速的 Certbot 來幫忙上 SSL，剛好就趁這個時候來玩玩看自簽憑證吧！
+" /><meta name="keywords" content="openSSL, certificate, x.509" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.65.2 with theme even" />
+
+
+<link rel="canonical" href="http://localhost:1313/post/self-certificate/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+
+<link href="/dist/even.8dc6a26c.min.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+<link rel="stylesheet" href="/css/custom.css">
+<link rel="stylesheet" href="/css/bulma-tag.css">
+<link rel="stylesheet" href="/css/bulma-pageloader.css">
+<link rel="stylesheet" href="/css/bulma-timeline.css">
+<link rel="stylesheet" href="/css/bulma-box.css">
+
+
+<meta property="og:title" content="利用openSSL自簽憑證" />
+<meta property="og:description" content="
+最近有一項作業是實作利用 TLS 通訊的網路程式，需要自行為 Server 跟 Client 產生金鑰跟憑證來做驗證。一直以來都只有用方便又快速的 Certbot 來幫忙上 SSL，剛好就趁這個時候來玩玩看自簽憑證吧！
+" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://localhost:1313/post/self-certificate/" />
+<meta property="article:published_time" content="2020-04-22T15:14:50+08:00" />
+<meta property="article:modified_time" content="2020-04-22T15:14:50+08:00" />
+<meta itemprop="name" content="利用openSSL自簽憑證">
+<meta itemprop="description" content="
+最近有一項作業是實作利用 TLS 通訊的網路程式，需要自行為 Server 跟 Client 產生金鑰跟憑證來做驗證。一直以來都只有用方便又快速的 Certbot 來幫忙上 SSL，剛好就趁這個時候來玩玩看自簽憑證吧！
+">
+<meta itemprop="datePublished" content="2020-04-22T15:14:50&#43;08:00" />
+<meta itemprop="dateModified" content="2020-04-22T15:14:50&#43;08:00" />
+<meta itemprop="wordCount" content="935">
+
+
+
+<meta itemprop="keywords" content="openSSL,certificate,x.509," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="利用openSSL自簽憑證"/>
+<meta name="twitter:description" content="
+最近有一項作業是實作利用 TLS 通訊的網路程式，需要自行為 Server 跟 Client 產生金鑰跟憑證來做驗證。一直以來都只有用方便又快速的 Certbot 來幫忙上 SSL，剛好就趁這個時候來玩玩看自簽憑證吧！
+"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+  <link href="https://fonts.googleapis.com/css?family=Fira+Code&display=swap" rel="stylesheet"> 
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Dev Note</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/post/">
+        <li class="mobile-menu-item">📦.Archives</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">📂.Categories</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">🏷.Tags</li>
+      </a><a href="https://xueyuan.dev">
+        <li class="mobile-menu-item">👾.About</li>
+      </a>
+  </ul>
+</nav>
+
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Dev Note<span class="emoji">
+
+    </span>
+  </a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/post/">📦.Archives</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/categories/">📂.Categories</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/tags/">🏷.Tags</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="https://xueyuan.dev">👾.About</a>
+      </li>
+  </ul>
+</nav>
+
+<script>
+  var emojiContainer = document.getElementsByClassName('emoji')[0];
+  var emojiArray = [
+    '🖥', '🎲', '🧬', '🍺', '🔥', '🇹🇼', '🌴',
+    '🌎', '💫', '🌿', '🌱', '🌾', '🌳', '🎋',
+    '🍀'
+  ];
+  var emoji = emojiArray[Math.floor(Math.random() * emojiArray.length)];
+  var content = document.createTextNode(emoji);
+  emojiContainer.appendChild(content);
+</script>
+    </header>
+    
+
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        
+        
+        
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">利用openSSL自簽憑證</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2020-04-22 </span>
+        <div class="post-category">
+            <a href="/categories/tech-sharing/"> ⚡ Tech Sharing </a>
+            </div>
+          <span class="more-meta"> 935 words </span>
+          <span class="more-meta"> 2 mins read </span>
+        
+      </div>
+    </header>
+
+    
+    <div class="post-content">
+      <img class="banner-image" src="https://images.unsplash.com/photo-1545569341-9eb8b30979d9" alt="Su San Lee@Unsplash"/>
+<p>最近有一項作業是實作利用 TLS 通訊的網路程式，需要自行為 Server 跟 Client 產生金鑰跟憑證來做驗證。一直以來都只有用方便又快速的 Certbot 來幫忙上 SSL，剛好就趁這個時候來玩玩看自簽憑證吧！</p>
+<br>
+<h1 id="requirements">Requirements</h1>
+<ul>
+<li>OpenSSL</li>
+</ul>
+<div class="admonition note"><p class="admonition-title">what is OpenSSL</p>
+<p>OpenSSL是一套加密工具，實作了 TLS 協定還有各種加密標準。在這篇文章中，我們將用他來產生金鑰跟憑證。</p>
+</div>
+<br>
+<h1 id="建立簡單的-ca-certificate-authority">建立簡單的 CA (Certificate Authority)!</h1>
+<p>首先要先幫我們的 CA 產生一把私鑰，這裡的參數 <code>-aes256</code> 代表產生出來的私鑰會用 AES 加密，因此會要求輸入一組密碼作為 AES 的 key。之後簽署 Certificate signing request（CSR）的時候都需要輸入這組密碼來驗證。</p>
+<pre><code class="language-bash">openssl genrsa -aes256 -out root/ca.key 4096
+</code></pre>
+<p>再來要用這把私鑰產生一份自我簽署的憑證。</p>
+<pre><code class="language-bash">openssl req -new -x509 -days 365 -sha256 \
+        -subj &quot;/C=TW/ST=Taipei/O=FOO/OU=BAR/CN=xueyuan.dev/emailAddress=denon@xueyuan.dev&quot; \
+        -key root/ca.key \
+        -out root/ca.crt
+</code></pre>
+<p>到這邊為止，我們的 CA 就算建立完了，接下來就可以用它去簽 CSR 和發憑證啦!</p>
+<br>
+<h1 id="產生-serverclient-的-key-和-csr">產生 Server/Client 的 key 和 CSR</h1>
+<p>這邊的步驟跟產生 CA 的 key 一樣，不過我們可以省略加密。</p>
+<pre><code class="language-bash">openssl genrsa -out server/server.key 4096
+</code></pre>
+<p>接著產生 CSR，</p>
+<pre><code class="language-bash">openssl req -new -sha256 -key server/server.key \
+        -subj &quot;/C=TW/ST=Taipei/O=FOO/OU=BAR/CN=xueyuan.dev/emailAddress=denon@xueyuan.dev&quot; \
+        -out server/server.csr
+</code></pre>
+<br>
+<h1 id="3-發憑證">3. 發憑證!</h1>
+<p>Key 跟 CSR 產生完後就交給我們 CA 來簽署跟發證啦～</p>
+<pre><code class="language-bash">openssl x509 -req -CAcreateserial -days 30 -sha256 \
+        -CA root/ca.crt -CAkey root/ca.key \
+        -in server/server.csr \
+        -out server/server.crt 
+</code></pre>
+<br>
+<h1 id="4-檢視及驗證">4. 檢視及驗證</h1>
+<p>檢視憑證內容</p>
+<pre><code class="language-bash">openssl x509 -noout -text -in client/client.crt
+</code></pre>
+<p>驗證剛剛產生的憑證是否由我們的 CA 所簽署的，</p>
+<pre><code class="language-bash">openssl verify -CAfile root/ca.crt client/client.crt
+</code></pre>
+<br>
+<h1 id="5-結論">5. 結論</h1>
+<p>一般來說我們的憑證不是只有 Root CA 簽署，中間還會有許多 CA 參與，這些 CA 又叫做中繼 CA（Intermediate CA），這樣可以減少 Root CA 的簽名被暴露的風險。由這些 CA 簽發下來的憑證會形成一個憑證鍊（Certificate Chain），大概會長得像這樣：</p>
+<pre><code class="language-bash">-----BEGIN CERTIFICATE-----
+# Base64–encoded certificate
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+# Base64–encoded certificate
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+# Base64–encoded certificate
+-----END CERTIFICATE-----
+</code></pre>
+<p>每一層的憑證會去認證上一層的憑證。</p>
+<br>
+<h1 id="參數說明">參數說明</h1>
+<ul>
+<li>Standard Command:
+<ul>
+<li>genrsa: 用來產生 key 的，後面要接上 key 的長度。
+<ul>
+<li>-aes256: 用 aes 加密這把 key，也有其他加密標準可選，例如：<code>des3</code></li>
+</ul>
+</li>
+<li>req: 用來建立和處理憑證請求，也可以建立自簽憑證。
+<ul>
+<li>-x509: 建立自簽憑證。</li>
+<li>-days: 指頂這份憑證的有效天數，與 <code>-x509</code> 一起使用。</li>
+<li>-subj: CSR 的 設定，省略的話後續的流程也會要你輸入。其中每個符號的意義分別是：
+<ul>
+<li>C: Country</li>
+<li>ST: State</li>
+<li>O: Organization</li>
+<li>OU: OrganizationalUnit</li>
+<li>CN: CommonName，通常為 Domain name</li>
+<li>emailAddress: 就是 email</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>x509: 用來簽署、顯示或是編輯憑證
+<ul>
+<li>-req: 確保輸入的檔案是 CSR 而不是 CRT</li>
+<li>-CAcreateserial: 建立一個檔案（.srl）來記錄簽了幾個憑證</li>
+<li>-noout: 不輸出編碼版本</li>
+</ul>
+</li>
+<li>verify: 驗證憑證鍊</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>OpenSSL 主要分三種功能，除了這次用到的 Standard Commands 外，還有 Message Digest Commands 和 Cipher Commands</p>
+</blockquote>
+<br>
+<h1 id="references">References</h1>
+<ul>
+<li><a href="https://zh.wikipedia.org/zh-tw/OpenSSL">Wiki</a></li>
+<li><a href="https://www.openssl.org/docs/man1.1.1/man1/">OpenSSL Manual</a></li>
+<li><a href="https://raix852.github.io/2016/06/20/use-openssl-generate-certificate/">使用OpenSSL建立憑證</a></li>
+</ul>
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">denon</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">
+        2020-04-22
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      <div class="post-tags">
+          <span class="b-tag"><a href="/tags/openssl/">openSSL</a></span>
+          <span class="b-tag"><a href="/tags/certificate/">certificate</a></span>
+          <span class="b-tag"><a href="/tags/x.509/">x.509</a></span>
+          </div>
+      <nav class="post-nav">
+        
+        
+      </nav>
+    </footer>
+  </article>
+        </div>
+        <div id="disqus_thread"></div>
+    <script type="text/javascript">
+    (function() {
+      
+      
+      if (window.location.hostname === 'localhost') return;
+
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      var disqus_shortname = 'xueyuan';
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+    <span style="color: #555555;">
+      <a href="https://github.com/xue-yuan" target="_blank"><i class="iconfont fab fa-lg fa-github"></i></a>
+      <a href="mailto:g00se.9527@gmail.com"><i class="iconfont fas fa-lg fa-envelope"></i></a>
+    </span>
+    
+    
+    
+  
+  
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  
+
+  <span class="copyright-year">
+    &copy; 
+    2019 - 
+    2020
+    <span class="heart" style="color: tomato;">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">Denon</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  <script src="/lib/highlight/highlight.pack.js?v=20171001"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="/dist/even.4bf41a80.min.js"></script>
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-155115076-1', 'auto');
+	ga('set', 'anonymizeIp', true);
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+
+
+
+
+
+
+</body>
+</html>

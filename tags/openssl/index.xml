@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Dev Note</title>
-    <link>http://localhost:1313/</link>
-    <description>Recent content on Dev Note</description>
+    <title>openSSL on Dev Note</title>
+    <link>http://localhost:1313/tags/openssl/</link>
+    <description>Recent content in openSSL on Dev Note</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <lastBuildDate>Wed, 22 Apr 2020 15:14:50 +0800</lastBuildDate>
     
-	<atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="http://localhost:1313/tags/openssl/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -20,24 +20,6 @@
       <description>&lt;img class=&#34;banner-image&#34; src=&#34;https://images.unsplash.com/photo-1545569341-9eb8b30979d9&#34; alt=&#34;Su San Lee@Unsplash&#34;/&gt;
 &lt;p&gt;最近有一項作業是實作利用 TLS 通訊的網路程式，需要自行為 Server 跟 Client 產生金鑰跟憑證來做驗證。一直以來都只有用方便又快速的 Certbot 來幫忙上 SSL，剛好就趁這個時候來玩玩看自簽憑證吧！&lt;/p&gt;
 &lt;br&gt;</description>
-    </item>
-    
-    <item>
-      <title></title>
-      <link>http://localhost:1313/about/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>http://localhost:1313/about/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title></title>
-      <link>http://localhost:1313/project/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>http://localhost:1313/project/</guid>
-      <description></description>
     </item>
     
   </channel>
